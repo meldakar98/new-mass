@@ -1,6 +1,58 @@
-import React from 'react';
+import { readFile } from 'fs';
+import JSZip from 'jszip';
+import React, { useState, useEffect } from 'react';
+import Control_MASS_CheckerCoverage from '../Controller/Control_MASS_CheckerCoverage';
 const FileUpload: React.FC = () => {
+
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const [isReplacingOld, setReplacingOld] = useState<boolean>(false);
   
+  useEffect(() => {
+    if (currentFile) {
+      JSZip.loadAsync(currentFile) 
+      .then((zip) => {
+          console.log(zip)
+          buildConfigFromJavaFiles(zip, isReplacingOld);
+          });      
+    }
+  }, [currentFile]);
+  const [result,setResult]= useState(null);
+
+
+ const buildConfigFromJavaFiles = async (files: any, isReplacingOld: boolean) => {
+    var cc : Control_MASS_CheckerCoverage = new Control_MASS_CheckerCoverage();
+    var isStillReplacingOld = isReplacingOld;
+    var relativePaths: String[] = [];
+    var currentFiles: any = [];
+    var fileIndex = 0;
+    try {
+      // Iterate through each file
+      files.forEach((relativePath: string, currentFile: File) => {
+        relativePaths.push(relativePath);
+        currentFiles.push(currentFile);
+        fileIndex++;
+      });
+      for(let i=0; i<fileIndex; i++){
+        if(relativePaths[i].includes("/.") || currentFiles[i].dir) {
+          i=i+1;
+        }
+        if(i<fileIndex && currentFiles[i].name.endsWith(".java")) {
+          let fileContent = await files.file(currentFiles[i].name).async("string");
+          cc.buildConfigFromJavaFile(currentFiles[i], fileContent, isStillReplacingOld,setResult);
+          isStillReplacingOld = true;
+        }
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }
+
+  const onSelectFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { files } = event.target;
+    const selectedFiles = files as FileList;
+    setCurrentFile(selectedFiles?.[0]);
+  };
+
 
   return (
     <div className="box">
@@ -22,6 +74,8 @@ const FileUpload: React.FC = () => {
               name="othersProjectFile1"
               id="othersProjectFile1"
               className="othersProjectFile none"
+              accept="zip,application/octet-stream,application/zip,application/x-zip,application/x-zip-compressed"
+              onChange={onSelectFile}
             />
           </div>
         </div>
@@ -32,7 +86,14 @@ const FileUpload: React.FC = () => {
       </div>
       <label htmlFor="projectFile">
         <div className="boxUpload">
-          <input type="file" name="projectFile" id="projectFile" className="none" />
+          <input 
+            type="file" 
+            name="projectFile" 
+            id="projectFile" 
+            className="none"               
+            onChange={onSelectFile}
+            accept="zip,application/octet-stream,application/zip,application/x-zip,application/x-zip-compressed"
+          />
           <i className="uil uil-upload"></i>
           <p>
             {' '}
@@ -44,7 +105,8 @@ const FileUpload: React.FC = () => {
         </div>
       </label>
       <div className="boxContainer none">
-        <ul id="filehierarchy_tree" className="filehierarchy_tree"></ul>
+        
+        <ul id="filehierarchy_tree" className="filehierarchy_tree">{result}</ul>
       </div>
       <div className="boxInfos">
         <p className="allowed uil uil-check-circle none">Upload succeed</p>
