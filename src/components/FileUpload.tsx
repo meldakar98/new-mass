@@ -36,6 +36,8 @@ const FileUpload: React.FC = () => {
         if(relativePaths[i].includes("/.") || currentFiles[i].dir) {
           i=i+1;
         }
+
+      console.log("resultState");
         if(i<fileIndex && currentFiles[i].name.endsWith(".java")) {
           let fileContent = await files.file(currentFiles[i].name).async("string");
           cc.buildConfigFromJavaFile(currentFiles[i], fileContent, isStillReplacingOld,setResult);
@@ -111,6 +113,10 @@ const FileUpload: React.FC = () => {
       <div className="boxInfos">
         <p className="allowed uil uil-check-circle none">Upload succeed</p>
         <p className="error uil uil-minus-circle none">Upload rejected</p>
+      </div>
+      <div>
+        <h1>Result</h1>
+        <h2>{result}</h2>
       </div>
     </div>
   );
